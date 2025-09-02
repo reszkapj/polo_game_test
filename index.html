@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Polo Game Tracker</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: Arial, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; min-height: 100vh; }
+        .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+        .header { text-align: center; margin-bottom: 2rem; }
+        .header h1 { font-size: 3rem; margin-bottom: 0.5rem; text-shadow: 2px 2px 4px rgba(0,0,0,0.3); }
+        .live-indicator { display: inline-block; width: 10px; height: 10px; background: #e74c3c; border-radius: 50%; margin-left: 10px; animation: pulse 2s infinite; }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+        .game-card { background: rgba(255,255,255,0.1); backdrop-filter: blur(10px); border-radius: 15px; padding: 2rem; margin-bottom: 2rem; border: 1px solid rgba(255,255,255,0.2); }
+        .score-display { display: grid; grid-template-columns: 1fr auto 1fr; gap: 2rem; align-items: center; margin-bottom: 2rem; }
+        .team { text-align: center; }
+        .team-name { font-size: 1.5rem; font-weight: bold; margin-bottom: 0.5rem; }
+        .team-score { font-size: 4rem; font-weight: bold; text-shadow: 2px 2px 4px rgba(0,0,0,0.3); }
+        .vs { font-size: 2rem; font-weight: bold; }
+        .game-info { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 2rem; }
+        .info-item { background: rgba(255,255,255,0.1); padding: 1rem; border-radius: 8px; text-align: center; }
+        .info-label { font-size: 0.9rem; opacity: 0.8; margin-bottom: 0.5rem; }
+        .info-value { font-size: 1.2rem; font-weight: bold; }
+        .chukka-timer { font-size: 2rem; font-weight: bold; color: #f39c12; }
+        .players-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; }
+        .team-players { background: rgba(255,255,255,0.1); padding: 1rem; border-radius: 8px; }
+        .player { display: flex; justify-content: space-between; align-items: center; padding: 5px 0; border-bottom: 1px solid rgba(255,255,255,0.1); }
+        .player:last-child { border-bottom: none; }
+        .recent-events { margin-top: 2rem; }
+        .event { background: rgba(255,255,255,0.1); padding: 10px; margin: 5px 0; border-radius: 5px; display: flex; justify-content: space-between; align-items: center; }
+        .event-time { opacity: 0.7; font-size: 0.9rem; }
+        .no-game { text-align: center; padding: 4rem; opacity: 0.7; }
+        .historical-games { margin-top: 2rem; }
+        .historical-game { background: rgba(255,255,255,0.1); padding: 1rem; margin: 10px 0; border-radius: 8px; cursor: pointer; transition: all 0.3s; }
+        .historical-game:hover { background: rgba(255,255,255,0.2); }
+        .hidden { display: none; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Polo Game Tracker</h1>
+            <div>
+                <button class="btn" onclick="showLiveGame()" style="background: rgba(255,255,255,0.2); color: white; padding: 10px 20px; border: none; border-radius: 5px; margin: 5px; cursor: pointer;">Live Game</button>
+                <button class="btn" onclick="showHistoricalGames()" style="background: rgba(255,255,255,0.2); color: white; padding: 10px 20px; border: none; border-radius: 5px; margin: 5px; cursor: pointer;">Historical Games</button>
+                <a href="admin.html" style="background: #e74c3c; color: white; padding: 10px 20px; border: none; border-radius: 5px; margin: 5px; text-decoration: none; display: inline-block;">Admin Panel</a>
+            </div>
+        </div>
+
+        <div id="liveGameSection">
+            <div id="noLiveGame" class="no-game">
+                <h2>No Live Game</h2>
+                <p>Check back when a game is in progress!</p>
+            </div>
+
+            <div id="liveGameCard" class="game-card hidden">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                    <h2 id="gameName"></h2>
+                    <span id="gameStatus" class="live-indicator"></span>
+                </div>
+
+                <div class="score-display">
+                    <div class="team">
+                        <div class="team-name" id="team1Name"></div>
+                        <div class="team-score" id="team1Score">0</div>
+                    </div>
+                    <div class="vs">VS</div>
+                    <div class="team">
+                        <div class="team-name" id="team2Name"></div>
+                        <div class="team-score" id="team2Score">0</div>
+                    </div>
+                </div>
+
+                <div class="game-info">
+                    <div class="info-item">
+                        <div class="info-label">Current Chukka</div>
+                        <div class="info-value" id="currentChukka">0</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Chukka Time</div>
+                        <div class="info-value chukka-timer" id="chukkaTimer">00:00</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Venue</div>
+                        <div class="info-value" id="venue"></div>
+                    </div>
+                </div>
+
+                <div class="players-grid">
+                    <div class="team-players">
+                        <h3 id="team1PlayersTitle"></h3>
+                        <div id="team1Players"></div>
+                    </div>
+                    <div class="team-players">
+                        <h3 id="team2PlayersTitle"></h3>
+                        <div id="team2Players"></div>
+                    </div>
+                </div>
+
+                <div class="recent-events">
+                    <h3>Recent Events</h3>
+                    <div id="recentEvents"></div>
+                </div>
+            </div>
+        </div>
+
+        <div id="historicalSection" class="hidden">
+            <div class="game-card">
+                <h2>Historical Games</h2>
+                <div id="historicalGames"></div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module" src="js/main.js"></script>
+</body>
+</html>
