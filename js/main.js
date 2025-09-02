@@ -3,11 +3,18 @@
 let currentGameId = null;
 let chukkaTimer = null;
 
-// Initialize app
-document.addEventListener('DOMContentLoaded', () => {
+// Initialize app when Firebase is ready
+function initializeApp() {
+  if (typeof firebase === 'undefined') {
+    setTimeout(initializeApp, 100);
+    return;
+  }
+  
   loadLiveGame();
   initializeNotifications();
-});
+}
+
+document.addEventListener('DOMContentLoaded', initializeApp);
 
 // Load current live game
 function loadLiveGame() {

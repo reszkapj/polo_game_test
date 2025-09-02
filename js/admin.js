@@ -4,22 +4,29 @@ let currentGame = null;
 let createGameFn, addGameEventFn;
 
 // Initialize when Firebase is loaded
-document.addEventListener('DOMContentLoaded', () => {
+function initializeAdmin() {
+  if (typeof firebase === 'undefined') {
+    setTimeout(initializeAdmin, 100);
+    return;
+  }
+  
   createGameFn = firebase.functions().httpsCallable('createGame');
   addGameEventFn = firebase.functions().httpsCallable('addGameEvent');
-});
+  
+  // Auth state management
+  firebase.auth().onAuthStateChanged((user) => {
+    if (user) {
+      document.getElementById('loginSection').classList.add('hidden');
+      document.getElementById('adminSection').classList.remove('hidden');
+      loadGames();
+    } else {
+      document.getElementById('loginSection').classList.remove('hidden');
+      document.getElementById('adminSection').classList.add('hidden');
+    }
+  });
+}
 
-// Auth state management
-firebase.auth().onAuthStateChanged((user) => {
-  if (user) {
-    document.getElementById('loginSection').classList.add('hidden');
-    document.getElementById('adminSection').classList.remove('hidden');
-    loadGames();
-  } else {
-    document.getElementById('loginSection').classList.remove('hidden');
-    document.getElementById('adminSection').classList.add('hidden');
-  }
-});
+document.addEventListener('DOMContentLoaded', initializeAdmin);
 
 // Login function
 window.login = async () => {
