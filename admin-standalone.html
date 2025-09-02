@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Polo Game Tracker - Admin</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; background: #f4f4f4; }
+        .container { max-width: 800px; margin: 0 auto; padding: 20px; }
+        .card { background: white; padding: 1.5rem; margin-bottom: 1rem; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        .btn { background: #3498db; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; margin: 5px; }
+        .btn:hover { background: #2980b9; }
+        .form-group { margin-bottom: 1rem; }
+        .form-group label { display: block; margin-bottom: 5px; font-weight: bold; }
+        .form-group input { width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; }
+        .hidden { display: none; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div id="loginSection" class="card">
+            <h2>Admin Login</h2>
+            <div class="form-group">
+                <label>Email:</label>
+                <input type="email" id="loginEmail" placeholder="admin@example.com">
+            </div>
+            <div class="form-group">
+                <label>Password:</label>
+                <input type="password" id="loginPassword">
+            </div>
+            <button class="btn" onclick="login()">Login</button>
+            <div id="loginError" style="color: red; margin-top: 10px;"></div>
+        </div>
+
+        <div id="adminSection" class="hidden">
+            <div class="card">
+                <h2>Admin Panel</h2>
+                <button class="btn" onclick="logout()" style="background: #e74c3c;">Logout</button>
+                <a href="index-standalone.html" class="btn" style="text-decoration: none; display: inline-block;">View Live Game</a>
+            </div>
+
+            <div class="card">
+                <h3>Create New Game</h3>
+                <div class="form-group">
+                    <label>Game Name:</label>
+                    <input type="text" id="gameName" placeholder="e.g. Semi-final 1">
+                </div>
+                <div class="form-group">
+                    <label>Team 1 Name:</label>
+                    <input type="text" id="team1Name" placeholder="Team A">
+                </div>
+                <div class="form-group">
+                    <label>Team 1 Players (comma separated):</label>
+                    <input type="text" id="team1Players" placeholder="John, Jane, Bob, Alice">
+                </div>
+                <div class="form-group">
+                    <label>Team 2 Name:</label>
+                    <input type="text" id="team2Name" placeholder="Team B">
+                </div>
+                <div class="form-group">
+                    <label>Team 2 Players (comma separated):</label>
+                    <input type="text" id="team2Players" placeholder="Mike, Sarah, Tom, Emma">
+                </div>
+                <button class="btn" onclick="createGame()">Create Game</button>
+                <div id="createResult" style="margin-top: 10px;"></div>
+            </div>
+
+            <div class="card">
+                <h3>Current Games</h3>
+                <div id="gamesList"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Firebase CDN -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-functions-compat.js"></script>
+
+    <script>
+        // Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyDf5K0C7ipmKGKXRsw8KzgP22ZGVQ14Bag",
+            authDomain: "polo-game-tracker.firebaseapp.com",
+            projectId: "polo-game-tracker",
+            storageBucket: "polo-game-tracker.firebasestorage.app",
+            messagingSenderId: "573484036840",
+            appId: "1:573484036840:web:6c20fc034513756ee74f5d",
+            measurementId: "G-51QRWRCR4V"
+        };
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+        const functions = firebase.functions();
+
+        // Auth state
+        auth.onAuthStateChanged((user) => {
+            if (user) {
+                document.getElementById('loginSection').classList.add('hidden');
+                document.getElementById('adminSection').classList.remove('hidden');
+                loadGames();
+            } else {
+                document.getElementById('loginSection').classList.remove('hidden');
+                document.getElementById('adminSection').classList.add('hidden');
+            }
+        });
+
+        // Login
+        async function login() {
+            const email = document.getElementById('loginEmail').value;
+            const password = document.getElementById('loginPassword').value;
+            const errorDiv = document.getElementById('loginError');
+            
+            try {
+                await auth.signInWithEmailAndPassword(email, password);
+                errorDiv.textContent = '';
+            } catch (error) {
+                errorDiv.textContent = 'Login failed: ' + error.message;
+            }
+        }
+
+        // Logout
+        async function logout() {
+            await auth.signOut();
+        }
+
+        // Create game
+        async function createGame() {
+            const resultDiv = document.getElementById('createResult');
+            resultDiv.textContent = 'Creating game...';
+            
+            const data = {
+                name: document.getElementById('gameName').value || 'New Game',
+                team1Name: document.getElementById('team1Name').value || 'Team 1',
+                team2Name: document.getElementById('team2Name').value || 'Team 2',
+                team1Players: document.getElementById('team1Players').value
+                    .split(',')
+                    .map(name => ({ name: name.trim(), position: 1 }))
+                    .filter(p => p.name),
+                team2Players: document.getElementById('team2Players').value
+                    .split(',')
+                    .map(name => ({ name: name.trim(), position: 1 }))
+                    .filter(p => p.name),
+                venue: '',
+                startDate: '',
+                startTime: ''
+            };
+            
+            try {
+                const createGameFn = functions.httpsCallable('createGame');
+                const result = await createGameFn(data);
+                resultDiv.style.color = 'green';
+                resultDiv.textContent = 'Game created successfully!';
+                // Clear form
+                document.getElementById('gameName').value = '';
+                document.getElementById('team1Name').value = '';
+                document.getElementById('team1Players').value = '';
+                document.getElementById('team2Name').value = '';
+                document.getElementById('team2Players').value = '';
+            } catch (error) {
+                resultDiv.style.color = 'red';
+                resultDiv.textContent = 'Error: ' + error.message;
+            }
+        }
+
+        // Load games
+        function loadGames() {
+            db.collection('games')
+                .orderBy('createdAt', 'desc')
+                .limit(10)
+                .onSnapshot((snapshot) => {
+                    const gamesList = document.getElementById('gamesList');
+                    gamesList.innerHTML = '';
+                    
+                    if (snapshot.empty) {
+                        gamesList.innerHTML = '<p>No games found</p>';
+                        return;
+                    }
+                    
+                    snapshot.forEach((doc) => {
+                        const game = doc.data();
+                        const gameDiv = document.createElement('div');
+                        gameDiv.style.cssText = 'border: 1px solid #ddd; padding: 10px; margin: 5px 0; border-radius: 4px;';
+                        gameDiv.innerHTML = `
+                            <strong>${game.name}</strong><br>
+                            Status: ${game.status}<br>
+                            ${game.teams.team1.name} ${game.teams.team1.score} - ${game.teams.team2.score} ${game.teams.team2.name}
+                        `;
+                        gamesList.appendChild(gameDiv);
+                    });
+                });
+        }
+    </script>
+</body>
+</html>

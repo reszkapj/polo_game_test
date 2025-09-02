@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Polo Game Tracker</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: Arial, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; min-height: 100vh; }
+        .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+        .header { text-align: center; margin-bottom: 2rem; }
+        .header h1 { font-size: 3rem; margin-bottom: 0.5rem; text-shadow: 2px 2px 4px rgba(0,0,0,0.3); }
+        .no-game { text-align: center; padding: 4rem; opacity: 0.7; }
+        .game-card { background: rgba(255,255,255,0.1); backdrop-filter: blur(10px); border-radius: 15px; padding: 2rem; margin-bottom: 2rem; border: 1px solid rgba(255,255,255,0.2); }
+        .btn { background: rgba(255,255,255,0.2); color: white; padding: 10px 20px; border: none; border-radius: 5px; margin: 5px; cursor: pointer; }
+        .btn:hover { background: rgba(255,255,255,0.3); }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Polo Game Tracker</h1>
+            <div>
+                <a href="admin-standalone.html" class="btn" style="text-decoration: none; display: inline-block;">Admin Panel</a>
+            </div>
+        </div>
+
+        <div id="content" class="game-card">
+            <div id="loading">Loading Firebase...</div>
+            <div id="gameInfo" style="display: none;"></div>
+        </div>
+    </div>
+
+    <!-- Firebase CDN with explicit versioning -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+
+    <script>
+        // Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyDf5K0C7ipmKGKXRsw8KzgP22ZGVQ14Bag",
+            authDomain: "polo-game-tracker.firebaseapp.com",
+            projectId: "polo-game-tracker",
+            storageBucket: "polo-game-tracker.firebasestorage.app",
+            messagingSenderId: "573484036840",
+            appId: "1:573484036840:web:6c20fc034513756ee74f5d",
+            measurementId: "G-51QRWRCR4V"
+        };
+
+        // Initialize Firebase
+        let db;
+        try {
+            firebase.initializeApp(firebaseConfig);
+            db = firebase.firestore();
+            document.getElementById('loading').textContent = 'Firebase loaded! Connecting to database...';
+            loadGames();
+        } catch (error) {
+            document.getElementById('loading').textContent = 'Error loading Firebase: ' + error.message;
+        }
+
+        function loadGames() {
+            const gamesQuery = db.collection('games')
+                .where('status', 'in', ['live', 'paused'])
+                .limit(1);
+            
+            gamesQuery.onSnapshot((snapshot) => {
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('gameInfo').style.display = 'block';
+                
+                if (snapshot.empty) {
+                    document.getElementById('gameInfo').innerHTML = '<h2>No Live Games</h2><p>Check back when a game is in progress!</p>';
+                    return;
+                }
+                
+                const game = snapshot.docs[0].data();
+                document.getElementById('gameInfo').innerHTML = `
+                    <h2>${game.name || 'Live Game'}</h2>
+                    <div style="font-size: 2rem; margin: 20px 0;">
+                        ${game.teams.team1.name}: ${game.teams.team1.score} - 
+                        ${game.teams.team2.name}: ${game.teams.team2.score}
+                    </div>
+                    <p>Status: ${game.status}</p>
+                    <p>Chukka: ${game.currentChukka || 0}</p>
+                `;
+            }, (error) => {
+                document.getElementById('gameInfo').innerHTML = '<p>Error loading games: ' + error.message + '</p>';
+            });
+        }
+    </script>
+</body>
+</html>
