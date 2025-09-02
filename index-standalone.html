@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Polo Game Tracker</title>
+    <link rel="manifest" href="/manifest.json">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: Arial, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; min-height: 100vh; }
@@ -238,7 +239,7 @@
 
         function loadGames() {
             const gamesQuery = db.collection('games')
-                .where('status', 'in', ['live', 'paused', 'chukka_ended'])
+                .where('status', 'in', ['live', 'paused', 'chukker ended'])
                 .limit(1);
             
             gamesQuery.onSnapshot((snapshot) => {
@@ -263,7 +264,7 @@
                             <div style="font-size: 1.2rem; font-weight: bold;">${game.status}</div>
                         </div>
                         <div>
-                            <div style="opacity: 0.7;">Chukka</div>
+                            <div style="opacity: 0.7;">Chukker</div>
                             <div style="font-size: 1.2rem; font-weight: bold;">${game.currentChukka || 0}</div>
                         </div>
                         <div>
@@ -292,7 +293,7 @@
             if (game.status === 'live' && game.chukkaStartTime) {
                 startChukkaTimer(game.chukkaStartTime.toDate(), game.chukkaElapsedSeconds || 0);
             } else {
-                // Show static time if paused, chukka_ended, or game ended
+                // Show static time if paused, chukker ended, or game ended
                 const elapsed = game.chukkaElapsedSeconds || 0;
                 const minutes = Math.floor(elapsed / 60);
                 const seconds = elapsed % 60;
