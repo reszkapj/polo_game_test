@@ -196,14 +196,41 @@
 
         // Test notification manually
         function testNotification() {
+            console.log('Test notification clicked');
+            console.log('Notification permission:', Notification.permission);
+            console.log('Is secure context:', window.isSecureContext);
+            console.log('User agent:', navigator.userAgent);
+            
             if (Notification.permission === 'granted') {
                 console.log('Creating test notification...');
-                const notification = new Notification('Test Notification', {
-                    body: 'This is a test notification to verify they are working!',
-                    icon: './icon-192.png',
-                    tag: 'test'
-                });
-                console.log('Test notification created:', notification);
+                try {
+                    const notification = new Notification('Test Notification', {
+                        body: 'This is a test notification to verify they are working!',
+                        icon: './icon-192.png',
+                        tag: 'test',
+                        requireInteraction: false
+                    });
+                    
+                    notification.onclick = () => {
+                        console.log('Notification clicked');
+                        notification.close();
+                    };
+                    
+                    notification.onshow = () => {
+                        console.log('Notification shown');
+                    };
+                    
+                    notification.onerror = (error) => {
+                        console.error('Notification error:', error);
+                    };
+                    
+                    console.log('Test notification created:', notification);
+                } catch (error) {
+                    console.error('Error creating notification:', error);
+                    alert('Error creating notification: ' + error.message);
+                }
+            } else if (Notification.permission === 'denied') {
+                alert('Notifications are blocked. Please enable them in your browser settings:\n\n1. Click the lock icon next to the URL\n2. Change Notifications to "Allow"\n3. Refresh the page');
             } else {
                 alert('Notifications not enabled. Click "Enable Notifications" first.');
             }
