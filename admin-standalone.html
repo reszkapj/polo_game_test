@@ -98,13 +98,13 @@
 
         <div id="gameControls" class="card hidden">
             <h3>Game Controls - <span id="currentGameName"></span></h3>
-            <p>Status: <span id="currentGameStatus" class="status"></span> | Chukka: <span id="currentChukka">0</span></p>
+            <p>Status: <span id="currentGameStatus" class="status"></span> | Chukker: <span id="currentChukka">0</span></p>
             
             <h4>Game Events</h4>
             <div class="event-buttons">
                 <button class="btn btn-success" onclick="addEvent('game_start')">Start Game</button>
-                <button class="btn" onclick="addEvent('chukka_start')">Start Chukka</button>
-                <button class="btn" onclick="addEvent('chukka_end')">End Chukka</button>
+                <button class="btn" onclick="addEvent('chukka_start')">Start Chukker</button>
+                <button class="btn" onclick="addEvent('chukka_end')">End Chukker</button>
                 <button class="btn" onclick="addEvent('pause')">Pause</button>
                 <button class="btn" onclick="addEvent('resume')">Resume</button>
                 <button class="btn btn-danger" onclick="addEvent('game_end')">End Game</button>
@@ -123,13 +123,13 @@
                 <button class="btn" onclick="setScores()">Set Scores</button>
             </div>
 
-            <h4>Current Chukka Control</h4>
+            <h4>Current Chukker Control</h4>
             <div style="display: grid; grid-template-columns: 1fr 100px; gap: 10px; margin: 10px 0;">
-                <input type="number" id="chukkaNumberInput" placeholder="Chukka Number" min="0" max="6" style="padding: 8px;">
-                <button class="btn" onclick="setCurrentChukka()">Set Chukka</button>
+                <input type="number" id="chukkaNumberInput" placeholder="Chukker Number" min="0" max="6" style="padding: 8px;">
+                <button class="btn" onclick="setCurrentChukka()">Set Chukker</button>
             </div>
 
-            <h4>Chukka Timer Control</h4>
+            <h4>Chukker Timer Control</h4>
             <div style="margin: 5px 0; font-size: 0.9rem; opacity: 0.7;">
                 Current: <span id="currentTimerDisplay">00:00</span>
             </div>
@@ -294,11 +294,11 @@
             
             let chukka = parseInt(document.getElementById('currentChukka').textContent) || 0;
             
-            // For chukka_start, automatically increment to next chukka
+            // For chukka_start, automatically increment to next chukker
             if (eventType === 'chukka_start') {
                 chukka = chukka + 1;
                 if (chukka > 6) {
-                    alert('Cannot start chukka beyond 6');
+                    alert('Cannot start chukker beyond 6');
                     return;
                 }
             }
@@ -357,7 +357,7 @@
             }
         }
 
-        // Set current chukka number manually
+        // Set current chukker number manually
         async function setCurrentChukka() {
             if (!currentGame) {
                 alert('Please select a game first');
@@ -367,7 +367,7 @@
             const chukkaNumber = parseInt(document.getElementById('chukkaNumberInput').value);
             
             if (isNaN(chukkaNumber) || chukkaNumber < 0 || chukkaNumber > 6) {
-                alert('Please enter a valid chukka number (0-6)');
+                alert('Please enter a valid chukker number (0-6)');
                 return;
             }
 
@@ -377,11 +377,11 @@
                     chukkaNumber: chukkaNumber
                 });
             } catch (error) {
-                alert('Error setting current chukka: ' + error.message);
+                alert('Error setting current chukker: ' + error.message);
             }
         }
 
-        // Set chukka timer manually
+        // Set chukker timer manually
         async function setChukkaTimer() {
             if (!currentGame) {
                 alert('Please select a game first');
@@ -432,7 +432,7 @@
                 updateLiveTimer();
                 adminChukkaTimer = setInterval(updateLiveTimer, 1000);
             } else {
-                // Show static time if paused, chukka_ended, or game ended
+                // Show static time if paused, chukker ended, or game ended
                 const elapsed = game.chukkaElapsedSeconds || 0;
                 const minutes = Math.floor(elapsed / 60);
                 const seconds = elapsed % 60;
@@ -463,17 +463,17 @@
             // Pause: disabled if game is already paused or not live
             pauseBtn.disabled = game.status !== 'live';
             
-            // Start Chukka: disabled if chukka is in progress OR if chukka ended (paused)
+            // Start Chukker: disabled if chukker is in progress OR if chukker ended (paused)
             startChukkaBtn.disabled = game.status === 'live' || game.status === 'paused';
             
-            // End Chukka: disabled if chukka is already ended or game not live
+            // End Chukker: disabled if chukker is already ended or game not live
             endChukkaBtn.disabled = game.status !== 'live';
             
             // End Game: enabled for any started game (not upcoming)
             endGameBtn.disabled = game.status === 'upcoming';
             
-            // Goal buttons: enabled if game is live, paused, or chukka_ended (started but not finished)
-            const goalsEnabled = game.status === 'live' || game.status === 'paused' || game.status === 'chukka_ended';
+            // Goal buttons: enabled if game is live, paused, or chukker ended (started but not finished)
+            const goalsEnabled = game.status === 'live' || game.status === 'paused' || game.status === 'chukker ended';
             team1GoalBtn.disabled = !goalsEnabled;
             team2GoalBtn.disabled = !goalsEnabled;
 
