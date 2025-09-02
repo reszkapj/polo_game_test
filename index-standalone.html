@@ -238,7 +238,7 @@
 
         function loadGames() {
             const gamesQuery = db.collection('games')
-                .where('status', 'in', ['live', 'paused'])
+                .where('status', 'in', ['live', 'paused', 'chukka_ended'])
                 .limit(1);
             
             gamesQuery.onSnapshot((snapshot) => {
@@ -292,7 +292,7 @@
             if (game.status === 'live' && game.chukkaStartTime) {
                 startChukkaTimer(game.chukkaStartTime.toDate(), game.chukkaElapsedSeconds || 0);
             } else {
-                // Show static time if paused or ended
+                // Show static time if paused, chukka_ended, or game ended
                 const elapsed = game.chukkaElapsedSeconds || 0;
                 const minutes = Math.floor(elapsed / 60);
                 const seconds = elapsed % 60;

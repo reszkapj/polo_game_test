@@ -126,6 +126,12 @@
                 <button class="btn" onclick="setScores()">Set Scores</button>
             </div>
 
+            <h4>Current Chukka Control</h4>
+            <div style="display: grid; grid-template-columns: 1fr 100px; gap: 10px; margin: 10px 0;">
+                <input type="number" id="chukkaNumberInput" placeholder="Chukka Number" min="0" max="6" style="padding: 8px;">
+                <button class="btn" onclick="setCurrentChukka()">Set Chukka</button>
+            </div>
+
             <h4>Chukka Timer Control</h4>
             <div style="margin: 5px 0; font-size: 0.9rem; opacity: 0.7;">
                 Current: <span id="currentTimerDisplay">00:00</span>
@@ -197,13 +203,14 @@
         // Variables
         let currentGame = null;
         let currentGameData = null;
-        let createGameFn, addGameEventFn, setChukkaTimerFn, setScoresFn;
+        let createGameFn, addGameEventFn, setChukkaTimerFn, setScoresFn, setCurrentChukkaFn;
 
         // Initialize functions
         createGameFn = functions.httpsCallable('createGame');
         addGameEventFn = functions.httpsCallable('addGameEvent');
         setChukkaTimerFn = functions.httpsCallable('setChukkaTimer');
         setScoresFn = functions.httpsCallable('setScores');
+        setCurrentChukkaFn = functions.httpsCallable('setCurrentChukka');
 
         // Create game
         async function createGame() {
@@ -261,6 +268,9 @@
             
             // Update current score display
             document.getElementById('currentScoreDisplay').textContent = `${game.teams.team1.score} - ${game.teams.team2.score}`;
+            
+            // Update current chukka input placeholder
+            document.getElementById('chukkaNumberInput').placeholder = `Current: ${game.currentChukka || 0}`;
             
             // Update current timer display
             updateTimerDisplay(game);
@@ -376,6 +386,35 @@
             }
         }
 
+        // Set current chukka number manually
+        async function setCurrentChukka() {
+            if (!currentGame) {
+                alert('Please select a game first');
+                return;
+            }
+
+            const chukkaNumber = parseInt(document.getElementById('chukkaNumberInput').value);
+            
+            if (isNaN(chukkaNumber) || chukkaNumber < 0 || chukkaNumber > 6) {
+                alert('Please enter a valid chukka number (0-6)');
+                return;
+            }
+
+            try {
+                await setCurrentChukkaFn({
+                    gameId: currentGame,
+                    chukkaNumber: chukkaNumber
+                });
+                alert(`Current chukka set to ${chukkaNumber}`);
+                
+                // Update display
+                document.getElementById('currentChukka').textContent = chukkaNumber;
+                document.getElementById('chukkaNumberInput').value = '';
+            } catch (error) {
+                alert('Error setting current chukka: ' + error.message);
+            }
+        }
+
         // Set chukka timer manually
         async function setChukkaTimer() {
             if (!currentGame) {
@@ -420,8 +459,8 @@
             const team1GoalBtn = document.getElementById('team1GoalBtn');
             const team2GoalBtn = document.getElementById('team2GoalBtn');
 
-            // Start Game: disabled if game already started (not 'upcoming')
-            startGameBtn.disabled = game.status !== 'upcoming';
+            // Start Game: enabled for 'upcoming' and 'finished' games
+            startGameBtn.disabled = game.status !== 'upcoming' && game.status !== 'finished';
             
             // Resume: only enabled if game is paused
             resumeBtn.disabled = game.status !== 'paused';
@@ -429,17 +468,17 @@
             // Pause: disabled if game is already paused or not live
             pauseBtn.disabled = game.status !== 'live';
             
-            // Start Chukka: disabled if chukka is already in progress (game is 'live')
-            startChukkaBtn.disabled = game.status === 'live';
+            // Start Chukka: disabled if chukka is in progress OR if chukka ended (paused)
+            startChukkaBtn.disabled = game.status === 'live' || game.status === 'paused';
             
-            // End Chukka: disabled if chukka is already ended (game is 'paused') or game not started
+            // End Chukka: disabled if chukka is already ended or game not live
             endChukkaBtn.disabled = game.status !== 'live';
             
-            // End Game: always enabled for games that have started
+            // End Game: enabled for any started game (not upcoming)
             endGameBtn.disabled = game.status === 'upcoming';
             
-            // Goal buttons: only enabled if game is live or paused (started but not finished)
-            const goalsEnabled = game.status === 'live' || game.status === 'paused';
+            // Goal buttons: enabled if game is live, paused, or chukka_ended (started but not finished)
+            const goalsEnabled = game.status === 'live' || game.status === 'paused' || game.status === 'chukka_ended';
             team1GoalBtn.disabled = !goalsEnabled;
             team2GoalBtn.disabled = !goalsEnabled;
 
