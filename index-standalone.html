@@ -21,6 +21,7 @@
         <div class="header">
             <h1>Polo Game Tracker</h1>
             <div>
+                <button id="enableNotifications" class="btn" onclick="requestNotifications()" style="display: none;">Enable Notifications</button>
                 <a href="admin-standalone.html" class="btn" style="text-decoration: none; display: inline-block;">Admin Panel</a>
             </div>
         </div>
@@ -34,6 +35,7 @@
     <!-- Firebase CDN with explicit versioning -->
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-messaging-compat.js"></script>
 
     <script>
         // Firebase configuration
@@ -48,14 +50,78 @@
         };
 
         // Initialize Firebase
-        let db;
+        let db, messaging;
         try {
             firebase.initializeApp(firebaseConfig);
             db = firebase.firestore();
+            messaging = firebase.messaging();
             document.getElementById('loading').textContent = 'Firebase loaded! Connecting to database...';
             loadGames();
+            initializeNotifications();
         } catch (error) {
             document.getElementById('loading').textContent = 'Error loading Firebase: ' + error.message;
+        }
+
+        // Initialize push notifications
+        async function initializeNotifications() {
+            try {
+                // Check if notifications are supported
+                if (!('Notification' in window)) {
+                    console.log('This browser does not support notifications');
+                    return;
+                }
+                
+                if (!('serviceWorker' in navigator)) {
+                    console.log('Service workers are not supported');
+                    return;
+                }
+
+                // Register service worker - use relative path for GitHub Pages
+                const registration = await navigator.serviceWorker.register('./firebase-messaging-sw.js');
+                console.log('Service Worker registered:', registration);
+
+                // Request permission
+                const permission = await Notification.requestPermission();
+                if (permission === 'granted') {
+                    console.log('Notification permission granted');
+                    
+                    // Get FCM token
+                    const token = await messaging.getToken({
+                        vapidKey: 'BG8tbedFo8H5yyaNS4TrgCMLbd6ggrdynd5qDItxNxzH69s4CO4IrNNlXI8-xckmN8XvJFm5_uEkfjCOevJ0nVg',
+                        serviceWorkerRegistration: registration
+                    });
+                    
+                    if (token) {
+                        console.log('FCM Token:', token);
+                        // Subscribe to topic for game updates
+                        subscribeToTopic(token);
+                    }
+
+                    // Handle foreground messages
+                    messaging.onMessage((payload) => {
+                        console.log('Message received:', payload);
+                        // Show notification even when app is in foreground
+                        const notificationTitle = payload.notification.title;
+                        const notificationOptions = {
+                            body: payload.notification.body,
+                            icon: '/icon-192.png'
+                        };
+                        new Notification(notificationTitle, notificationOptions);
+                    });
+                } else {
+                    console.log('Notification permission denied');
+                }
+            } catch (error) {
+                console.error('Error initializing notifications:', error);
+            }
+        }
+
+        // Subscribe to topic (this would typically be done server-side)
+        function subscribeToTopic(token) {
+            // In a real app, you'd send this token to your server
+            // to subscribe to the 'game-updates' topic
+            console.log('Token to subscribe:', token);
+            // For now, you can manually add this token to a topic in Firebase Console
         }
 
         function loadGames() {
