@@ -110,15 +110,17 @@
                 <button class="btn btn-danger" onclick="addEvent('game_end')">End Game</button>
             </div>
 
-            <h4>Add Goal</h4>
+            <h4>Score Control</h4>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 10px 0;">
+                <button id="team1GoalBtn" class="btn btn-success" onclick="addTeamGoal('team1')">Goal for Team 1</button>
+                <button id="team2GoalBtn" class="btn btn-success" onclick="addTeamGoal('team2')">Goal for Team 2</button>
+            </div>
+            
+            <h4>Manual Score Adjustment</h4>
             <div style="display: grid; grid-template-columns: 1fr 1fr 100px; gap: 10px; margin: 10px 0;">
-                <select id="goalTeam">
-                    <option value="">Select Team</option>
-                </select>
-                <select id="goalPlayer">
-                    <option value="">Select Player</option>
-                </select>
-                <button class="btn btn-success" onclick="addGoal()">Goal!</button>
+                <input type="number" id="team1ScoreInput" placeholder="Team 1 Score" min="0" style="padding: 8px;">
+                <input type="number" id="team2ScoreInput" placeholder="Team 2 Score" min="0" style="padding: 8px;">
+                <button class="btn" onclick="setScores()">Set Scores</button>
             </div>
 
             <h4>Chukka Timer Control</h4>
@@ -188,12 +190,14 @@
 
         // Variables
         let currentGame = null;
-        let createGameFn, addGameEventFn, setChukkaTimerFn;
+        let currentGameData = null;
+        let createGameFn, addGameEventFn, setChukkaTimerFn, setScoresFn;
 
         // Initialize functions
         createGameFn = functions.httpsCallable('createGame');
         addGameEventFn = functions.httpsCallable('addGameEvent');
         setChukkaTimerFn = functions.httpsCallable('setChukkaTimer');
+        setScoresFn = functions.httpsCallable('setScores');
 
         // Create game
         async function createGame() {
@@ -230,35 +234,24 @@
             document.getElementById('currentGameName').textContent = gameName;
             document.getElementById('gameControls').classList.remove('hidden');
             
-            // Load game data and populate team/player dropdowns
+            // Load game data and store it
             const gameDoc = await db.collection('games').doc(gameId).get();
             const game = gameDoc.data();
+            currentGameData = game;
             
             document.getElementById('currentGameStatus').textContent = game.status;
             document.getElementById('currentGameStatus').className = `status ${game.status}`;
             document.getElementById('currentChukka').textContent = game.currentChukka || 0;
             
-            // Populate team dropdown
-            const teamSelect = document.getElementById('goalTeam');
-            teamSelect.innerHTML = `
-                <option value="">Select Team</option>
-                <option value="${game.teams.team1.name}">${game.teams.team1.name}</option>
-                <option value="${game.teams.team2.name}">${game.teams.team2.name}</option>
-            `;
+            // Update team goal buttons with actual team names
+            document.getElementById('team1GoalBtn').textContent = `Goal for ${game.teams.team1.name}`;
+            document.getElementById('team2GoalBtn').textContent = `Goal for ${game.teams.team2.name}`;
             
-            // Update player dropdown when team changes
-            teamSelect.onchange = () => {
-                const selectedTeam = teamSelect.value;
-                const playerSelect = document.getElementById('goalPlayer');
-                playerSelect.innerHTML = '<option value="">Select Player</option>';
-                
-                if (selectedTeam) {
-                    const teamKey = selectedTeam === game.teams.team1.name ? 'team1' : 'team2';
-                    game.teams[teamKey].players.forEach(player => {
-                        playerSelect.innerHTML += `<option value="${player.name}">${player.name}</option>`;
-                    });
-                }
-            };
+            // Update score input placeholders and values
+            document.getElementById('team1ScoreInput').placeholder = `${game.teams.team1.name} Score`;
+            document.getElementById('team1ScoreInput').value = game.teams.team1.score;
+            document.getElementById('team2ScoreInput').placeholder = `${game.teams.team2.name} Score`;
+            document.getElementById('team2ScoreInput').value = game.teams.team2.score;
         }
 
         // Add game event
@@ -285,26 +278,46 @@
             }
         }
 
-        // Add goal
-        async function addGoal() {
-            const team = document.getElementById('goalTeam').value;
-            const player = document.getElementById('goalPlayer').value;
-            
-            if (!team || !player) {
-                alert('Please select both team and player');
+        // Add goal for specific team
+        async function addTeamGoal(teamKey) {
+            if (!currentGame || !currentGameData) {
+                alert('Please select a game first');
                 return;
             }
+            
+            const teamName = currentGameData.teams[teamKey].name;
             
             try {
                 await addGameEventFn({
                     gameId: currentGame,
                     type: 'goal',
-                    team: team,
-                    player: player,
-                    chukka: parseInt(document.getElementById('currentChukka').textContent)
+                    team: teamName,
+                    chukka: parseInt(document.getElementById('currentChukka').textContent) || 1
                 });
             } catch (error) {
                 alert('Error adding goal: ' + error.message);
+            }
+        }
+
+        // Set scores manually
+        async function setScores() {
+            if (!currentGame) {
+                alert('Please select a game first');
+                return;
+            }
+
+            const team1Score = parseInt(document.getElementById('team1ScoreInput').value) || 0;
+            const team2Score = parseInt(document.getElementById('team2ScoreInput').value) || 0;
+
+            try {
+                await setScoresFn({
+                    gameId: currentGame,
+                    team1Score: team1Score,
+                    team2Score: team2Score
+                });
+                alert('Scores updated successfully!');
+            } catch (error) {
+                alert('Error setting scores: ' + error.message);
             }
         }
 
