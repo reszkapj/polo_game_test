@@ -149,12 +149,15 @@
             }
         }
 
-        // Subscribe to topic (this would typically be done server-side)
-        function subscribeToTopic(token) {
-            // In a real app, you'd send this token to your server
-            // to subscribe to the 'game-updates' topic
-            console.log('Token to subscribe:', token);
-            // For now, you can manually add this token to a topic in Firebase Console
+        // Subscribe to topic
+        async function subscribeToTopic(token) {
+            try {
+                const subscribeFunction = firebase.functions().httpsCallable('subscribeToTopic');
+                const result = await subscribeFunction({ token });
+                console.log('Subscribed to notifications:', result.data.message);
+            } catch (error) {
+                console.error('Error subscribing to topic:', error);
+            }
         }
 
         function loadGames() {
