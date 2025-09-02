@@ -7,19 +7,31 @@
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; background: #f4f4f4; }
-        .container { max-width: 800px; margin: 0 auto; padding: 20px; }
+        .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+        .header { background: #2c3e50; color: white; padding: 1rem; margin-bottom: 2rem; border-radius: 8px; }
         .card { background: white; padding: 1.5rem; margin-bottom: 1rem; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
         .btn { background: #3498db; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; margin: 5px; }
         .btn:hover { background: #2980b9; }
+        .btn-success { background: #27ae60; }
+        .btn-success:hover { background: #229954; }
+        .btn-danger { background: #e74c3c; }
+        .btn-danger:hover { background: #c0392b; }
         .form-group { margin-bottom: 1rem; }
         .form-group label { display: block; margin-bottom: 5px; font-weight: bold; }
-        .form-group input { width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; }
+        .form-group input, .form-group select { width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; }
+        .event-buttons { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
+        .status { padding: 5px 10px; border-radius: 4px; font-weight: bold; }
+        .status.live { background: #e8f5e8; color: #27ae60; }
+        .status.paused { background: #fff3cd; color: #856404; }
+        .status.finished { background: #f8d7da; color: #721c24; }
         .hidden { display: none; }
+        .login-form { max-width: 400px; margin: 100px auto; }
     </style>
 </head>
 <body>
-    <div class="container">
-        <div id="loginSection" class="card">
+    <div id="loginSection" class="container">
+        <div class="login-form card">
             <h2>Admin Login</h2>
             <div class="form-group">
                 <label>Email:</label>
@@ -32,14 +44,15 @@
             <button class="btn" onclick="login()">Login</button>
             <div id="loginError" style="color: red; margin-top: 10px;"></div>
         </div>
+    </div>
 
-        <div id="adminSection" class="hidden">
-            <div class="card">
-                <h2>Admin Panel</h2>
-                <button class="btn" onclick="logout()" style="background: #e74c3c;">Logout</button>
-                <a href="index-standalone.html" class="btn" style="text-decoration: none; display: inline-block;">View Live Game</a>
-            </div>
+    <div id="adminSection" class="container hidden">
+        <div class="header">
+            <h1>Polo Game Tracker - Admin Panel</h1>
+            <button class="btn btn-danger" onclick="logout()" style="float: right;">Logout</button>
+        </div>
 
+        <div class="grid">
             <div class="card">
                 <h3>Create New Game</h3>
                 <div class="form-group">
@@ -47,12 +60,24 @@
                     <input type="text" id="gameName" placeholder="e.g. Semi-final 1">
                 </div>
                 <div class="form-group">
+                    <label>Venue:</label>
+                    <input type="text" id="venue" placeholder="Polo Club Name">
+                </div>
+                <div class="form-group">
+                    <label>Start Date:</label>
+                    <input type="date" id="startDate">
+                </div>
+                <div class="form-group">
+                    <label>Start Time:</label>
+                    <input type="time" id="startTime">
+                </div>
+                <div class="form-group">
                     <label>Team 1 Name:</label>
                     <input type="text" id="team1Name" placeholder="Team A">
                 </div>
                 <div class="form-group">
                     <label>Team 1 Players (comma separated):</label>
-                    <input type="text" id="team1Players" placeholder="John, Jane, Bob, Alice">
+                    <input type="text" id="team1Players" placeholder="Player 1, Player 2, Player 3, Player 4">
                 </div>
                 <div class="form-group">
                     <label>Team 2 Name:</label>
@@ -60,15 +85,40 @@
                 </div>
                 <div class="form-group">
                     <label>Team 2 Players (comma separated):</label>
-                    <input type="text" id="team2Players" placeholder="Mike, Sarah, Tom, Emma">
+                    <input type="text" id="team2Players" placeholder="Player 1, Player 2, Player 3, Player 4">
                 </div>
-                <button class="btn" onclick="createGame()">Create Game</button>
-                <div id="createResult" style="margin-top: 10px;"></div>
+                <button class="btn btn-success" onclick="createGame()">Create Game</button>
             </div>
 
             <div class="card">
                 <h3>Current Games</h3>
                 <div id="gamesList"></div>
+            </div>
+        </div>
+
+        <div id="gameControls" class="card hidden">
+            <h3>Game Controls - <span id="currentGameName"></span></h3>
+            <p>Status: <span id="currentGameStatus" class="status"></span> | Chukka: <span id="currentChukka">0</span></p>
+            
+            <h4>Game Events</h4>
+            <div class="event-buttons">
+                <button class="btn btn-success" onclick="addEvent('game_start')">Start Game</button>
+                <button class="btn" onclick="addEvent('chukka_start')">Start Chukka</button>
+                <button class="btn" onclick="addEvent('chukka_end')">End Chukka</button>
+                <button class="btn" onclick="addEvent('pause')">Pause</button>
+                <button class="btn" onclick="addEvent('resume')">Resume</button>
+                <button class="btn btn-danger" onclick="addEvent('game_end')">End Game</button>
+            </div>
+
+            <h4>Add Goal</h4>
+            <div style="display: grid; grid-template-columns: 1fr 1fr 100px; gap: 10px; margin: 10px 0;">
+                <select id="goalTeam">
+                    <option value="">Select Team</option>
+                </select>
+                <select id="goalPlayer">
+                    <option value="">Select Player</option>
+                </select>
+                <button class="btn btn-success" onclick="addGoal()">Goal!</button>
             </div>
         </div>
     </div>
@@ -128,71 +178,150 @@
             await auth.signOut();
         }
 
+        // Variables
+        let currentGame = null;
+        let createGameFn, addGameEventFn;
+
+        // Initialize functions
+        createGameFn = functions.httpsCallable('createGame');
+        addGameEventFn = functions.httpsCallable('addGameEvent');
+
         // Create game
         async function createGame() {
-            const resultDiv = document.getElementById('createResult');
-            resultDiv.textContent = 'Creating game...';
-            
             const data = {
                 name: document.getElementById('gameName').value || 'New Game',
                 team1Name: document.getElementById('team1Name').value || 'Team 1',
                 team2Name: document.getElementById('team2Name').value || 'Team 2',
                 team1Players: document.getElementById('team1Players').value
                     .split(',')
-                    .map(name => ({ name: name.trim(), position: 1 }))
+                    .map((name, index) => ({ name: name.trim(), position: index + 1 }))
                     .filter(p => p.name),
                 team2Players: document.getElementById('team2Players').value
                     .split(',')
-                    .map(name => ({ name: name.trim(), position: 1 }))
+                    .map((name, index) => ({ name: name.trim(), position: index + 1 }))
                     .filter(p => p.name),
-                venue: '',
-                startDate: '',
-                startTime: ''
+                venue: document.getElementById('venue').value || '',
+                startDate: document.getElementById('startDate').value || '',
+                startTime: document.getElementById('startTime').value || ''
             };
             
             try {
-                const createGameFn = functions.httpsCallable('createGame');
                 const result = await createGameFn(data);
-                resultDiv.style.color = 'green';
-                resultDiv.textContent = 'Game created successfully!';
+                alert('Game created successfully!');
                 // Clear form
-                document.getElementById('gameName').value = '';
-                document.getElementById('team1Name').value = '';
-                document.getElementById('team1Players').value = '';
-                document.getElementById('team2Name').value = '';
-                document.getElementById('team2Players').value = '';
+                document.querySelectorAll('#gameName, #venue, #startDate, #startTime, #team1Name, #team1Players, #team2Name, #team2Players').forEach(input => input.value = '');
             } catch (error) {
-                resultDiv.style.color = 'red';
-                resultDiv.textContent = 'Error: ' + error.message;
+                alert('Error creating game: ' + error.message);
+            }
+        }
+
+        // Select game for management
+        async function selectGame(gameId, gameName) {
+            currentGame = gameId;
+            document.getElementById('currentGameName').textContent = gameName;
+            document.getElementById('gameControls').classList.remove('hidden');
+            
+            // Load game data and populate team/player dropdowns
+            const gameDoc = await db.collection('games').doc(gameId).get();
+            const game = gameDoc.data();
+            
+            document.getElementById('currentGameStatus').textContent = game.status;
+            document.getElementById('currentGameStatus').className = `status ${game.status}`;
+            document.getElementById('currentChukka').textContent = game.currentChukka || 0;
+            
+            // Populate team dropdown
+            const teamSelect = document.getElementById('goalTeam');
+            teamSelect.innerHTML = `
+                <option value="">Select Team</option>
+                <option value="${game.teams.team1.name}">${game.teams.team1.name}</option>
+                <option value="${game.teams.team2.name}">${game.teams.team2.name}</option>
+            `;
+            
+            // Update player dropdown when team changes
+            teamSelect.onchange = () => {
+                const selectedTeam = teamSelect.value;
+                const playerSelect = document.getElementById('goalPlayer');
+                playerSelect.innerHTML = '<option value="">Select Player</option>';
+                
+                if (selectedTeam) {
+                    const teamKey = selectedTeam === game.teams.team1.name ? 'team1' : 'team2';
+                    game.teams[teamKey].players.forEach(player => {
+                        playerSelect.innerHTML += `<option value="${player.name}">${player.name}</option>`;
+                    });
+                }
+            };
+        }
+
+        // Add game event
+        async function addEvent(eventType) {
+            if (!currentGame) {
+                alert('Please select a game first');
+                return;
+            }
+            
+            let chukka = parseInt(document.getElementById('currentChukka').textContent);
+            if (eventType === 'chukka_start') {
+                chukka = prompt('Enter chukka number (1-6):');
+                if (!chukka || chukka < 1 || chukka > 6) return;
+            }
+            
+            try {
+                await addGameEventFn({
+                    gameId: currentGame,
+                    type: eventType,
+                    chukka: chukka
+                });
+            } catch (error) {
+                alert('Error adding event: ' + error.message);
+            }
+        }
+
+        // Add goal
+        async function addGoal() {
+            const team = document.getElementById('goalTeam').value;
+            const player = document.getElementById('goalPlayer').value;
+            
+            if (!team || !player) {
+                alert('Please select both team and player');
+                return;
+            }
+            
+            try {
+                await addGameEventFn({
+                    gameId: currentGame,
+                    type: 'goal',
+                    team: team,
+                    player: player,
+                    chukka: parseInt(document.getElementById('currentChukka').textContent)
+                });
+            } catch (error) {
+                alert('Error adding goal: ' + error.message);
             }
         }
 
         // Load games
         function loadGames() {
-            db.collection('games')
-                .orderBy('createdAt', 'desc')
-                .limit(10)
-                .onSnapshot((snapshot) => {
-                    const gamesList = document.getElementById('gamesList');
-                    gamesList.innerHTML = '';
+            const gamesQuery = db.collection('games').orderBy('createdAt', 'desc');
+            
+            gamesQuery.onSnapshot((snapshot) => {
+                const gamesList = document.getElementById('gamesList');
+                gamesList.innerHTML = '';
+                
+                snapshot.forEach((doc) => {
+                    const game = doc.data();
+                    const gameDiv = document.createElement('div');
+                    gameDiv.style.cssText = 'border: 1px solid #ddd; padding: 10px; margin: 5px 0; border-radius: 4px;';
                     
-                    if (snapshot.empty) {
-                        gamesList.innerHTML = '<p>No games found</p>';
-                        return;
-                    }
+                    gameDiv.innerHTML = `
+                        <strong>${game.name}</strong>
+                        <br>Status: <span class="status ${game.status}">${game.status}</span>
+                        <br>${game.teams.team1.name} ${game.teams.team1.score} - ${game.teams.team2.score} ${game.teams.team2.name}
+                        <br><button class="btn" onclick="selectGame('${doc.id}', '${game.name}')">Manage</button>
+                    `;
                     
-                    snapshot.forEach((doc) => {
-                        const game = doc.data();
-                        const gameDiv = document.createElement('div');
-                        gameDiv.style.cssText = 'border: 1px solid #ddd; padding: 10px; margin: 5px 0; border-radius: 4px;';
-                        gameDiv.innerHTML = `
-                            <strong>${game.name}</strong><br>
-                            Status: ${game.status}<br>
-                            ${game.teams.team1.name} ${game.teams.team1.score} - ${game.teams.team2.score} ${game.teams.team2.name}
-                        `;
-                        gamesList.appendChild(gameDiv);
-                    });
+                    gamesList.appendChild(gameDiv);
                 });
+            });
         }
     </script>
 </body>
