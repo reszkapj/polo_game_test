@@ -4,9 +4,22 @@ let currentGameId = null;
 let chukkaTimer = null;
 
 // Initialize app when Firebase is ready
+let initAttempts = 0;
 function initializeApp() {
+  initAttempts++;
+  
   if (typeof firebase === 'undefined' || typeof firebase.firestore === 'undefined') {
-    console.log('Waiting for Firebase...');
+    if (initAttempts > 50) { // Stop after 10 seconds
+      console.error('Firebase failed to load. Check your internet connection.');
+      document.getElementById('noLiveGame').innerHTML = `
+        <h2>Firebase Failed to Load</h2>
+        <p>Please check your internet connection and refresh the page.</p>
+        <p>If using locally, ensure you're serving via HTTP (not file://)</p>
+      `;
+      document.getElementById('noLiveGame').classList.remove('hidden');
+      return;
+    }
+    console.log('Waiting for Firebase... (attempt ' + initAttempts + ')');
     setTimeout(initializeApp, 200);
     return;
   }
