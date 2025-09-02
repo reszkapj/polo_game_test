@@ -117,6 +117,9 @@
             </div>
             
             <h4>Manual Score Adjustment</h4>
+            <div style="margin: 5px 0; font-size: 0.9rem; opacity: 0.7;">
+                Current: <span id="currentScoreDisplay">0 - 0</span>
+            </div>
             <div style="display: grid; grid-template-columns: 1fr 1fr 100px; gap: 10px; margin: 10px 0;">
                 <input type="number" id="team1ScoreInput" placeholder="Team 1 Score" min="0" style="padding: 8px;">
                 <input type="number" id="team2ScoreInput" placeholder="Team 2 Score" min="0" style="padding: 8px;">
@@ -124,6 +127,9 @@
             </div>
 
             <h4>Chukka Timer Control</h4>
+            <div style="margin: 5px 0; font-size: 0.9rem; opacity: 0.7;">
+                Current: <span id="currentTimerDisplay">00:00</span>
+            </div>
             <div style="display: grid; grid-template-columns: 1fr 1fr 100px; gap: 10px; margin: 10px 0;">
                 <input type="number" id="timerMinutes" placeholder="Minutes" min="0" max="59" style="padding: 8px;">
                 <input type="number" id="timerSeconds" placeholder="Seconds" min="0" max="59" style="padding: 8px;">
@@ -252,6 +258,15 @@
             document.getElementById('team1ScoreInput').value = game.teams.team1.score;
             document.getElementById('team2ScoreInput').placeholder = `${game.teams.team2.name} Score`;
             document.getElementById('team2ScoreInput').value = game.teams.team2.score;
+            
+            // Update current score display
+            document.getElementById('currentScoreDisplay').textContent = `${game.teams.team1.score} - ${game.teams.team2.score}`;
+            
+            // Update current timer display
+            updateTimerDisplay(game);
+            
+            // Update button states based on game status
+            updateButtonStates(game);
         }
 
         // Add game event
@@ -261,10 +276,15 @@
                 return;
             }
             
-            let chukka = parseInt(document.getElementById('currentChukka').textContent);
+            let chukka = parseInt(document.getElementById('currentChukka').textContent) || 0;
+            
+            // For chukka_start, automatically increment to next chukka
             if (eventType === 'chukka_start') {
-                chukka = prompt('Enter chukka number (1-6):');
-                if (!chukka || chukka < 1 || chukka > 6) return;
+                chukka = chukka + 1;
+                if (chukka > 6) {
+                    alert('Cannot start chukka beyond 6');
+                    return;
+                }
             }
             
             try {
@@ -273,6 +293,19 @@
                     type: eventType,
                     chukka: chukka
                 });
+                
+                // Reload game data to update button states
+                const gameDoc = await db.collection('games').doc(currentGame).get();
+                if (gameDoc.exists) {
+                    const game = gameDoc.data();
+                    currentGameData = game;
+                    document.getElementById('currentGameStatus').textContent = game.status;
+                    document.getElementById('currentGameStatus').className = `status ${game.status}`;
+                    document.getElementById('currentChukka').textContent = game.currentChukka || 0;
+                    document.getElementById('currentScoreDisplay').textContent = `${game.teams.team1.score} - ${game.teams.team2.score}`;
+                    updateTimerDisplay(game);
+                    updateButtonStates(game);
+                }
             } catch (error) {
                 alert('Error adding event: ' + error.message);
             }
@@ -294,6 +327,18 @@
                     team: teamName,
                     chukka: parseInt(document.getElementById('currentChukka').textContent) || 1
                 });
+                
+                // Reload game data to update scores and button states
+                const gameDoc = await db.collection('games').doc(currentGame).get();
+                if (gameDoc.exists) {
+                    const game = gameDoc.data();
+                    currentGameData = game;
+                    document.getElementById('team1ScoreInput').value = game.teams.team1.score;
+                    document.getElementById('team2ScoreInput').value = game.teams.team2.score;
+                    document.getElementById('currentScoreDisplay').textContent = `${game.teams.team1.score} - ${game.teams.team2.score}`;
+                    updateTimerDisplay(game);
+                    updateButtonStates(game);
+                }
             } catch (error) {
                 alert('Error adding goal: ' + error.message);
             }
@@ -316,6 +361,16 @@
                     team2Score: team2Score
                 });
                 alert('Scores updated successfully!');
+                
+                // Reload game data to update button states
+                const gameDoc = await db.collection('games').doc(currentGame).get();
+                if (gameDoc.exists) {
+                    const game = gameDoc.data();
+                    currentGameData = game;
+                    document.getElementById('currentScoreDisplay').textContent = `${game.teams.team1.score} - ${game.teams.team2.score}`;
+                    updateTimerDisplay(game);
+                    updateButtonStates(game);
+                }
             } catch (error) {
                 alert('Error setting scores: ' + error.message);
             }
@@ -344,6 +399,61 @@
             } catch (error) {
                 alert('Error setting timer: ' + error.message);
             }
+        }
+
+        // Update timer display
+        function updateTimerDisplay(game) {
+            const elapsed = game.chukkaElapsedSeconds || 0;
+            const minutes = Math.floor(elapsed / 60);
+            const seconds = elapsed % 60;
+            document.getElementById('currentTimerDisplay').textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+        }
+
+        // Update button states based on game status
+        function updateButtonStates(game) {
+            const startGameBtn = document.querySelector('button[onclick="addEvent(\'game_start\')"]');
+            const startChukkaBtn = document.querySelector('button[onclick="addEvent(\'chukka_start\')"]');
+            const endChukkaBtn = document.querySelector('button[onclick="addEvent(\'chukka_end\')"]');
+            const pauseBtn = document.querySelector('button[onclick="addEvent(\'pause\')"]');
+            const resumeBtn = document.querySelector('button[onclick="addEvent(\'resume\')"]');
+            const endGameBtn = document.querySelector('button[onclick="addEvent(\'game_end\')"]');
+            const team1GoalBtn = document.getElementById('team1GoalBtn');
+            const team2GoalBtn = document.getElementById('team2GoalBtn');
+
+            // Start Game: disabled if game already started (not 'upcoming')
+            startGameBtn.disabled = game.status !== 'upcoming';
+            
+            // Resume: only enabled if game is paused
+            resumeBtn.disabled = game.status !== 'paused';
+            
+            // Pause: disabled if game is already paused or not live
+            pauseBtn.disabled = game.status !== 'live';
+            
+            // Start Chukka: disabled if chukka is already in progress (game is 'live')
+            startChukkaBtn.disabled = game.status === 'live';
+            
+            // End Chukka: disabled if chukka is already ended (game is 'paused') or game not started
+            endChukkaBtn.disabled = game.status !== 'live';
+            
+            // End Game: always enabled for games that have started
+            endGameBtn.disabled = game.status === 'upcoming';
+            
+            // Goal buttons: only enabled if game is live or paused (started but not finished)
+            const goalsEnabled = game.status === 'live' || game.status === 'paused';
+            team1GoalBtn.disabled = !goalsEnabled;
+            team2GoalBtn.disabled = !goalsEnabled;
+
+            // Update button opacity for visual feedback
+            const buttons = [startGameBtn, startChukkaBtn, endChukkaBtn, pauseBtn, resumeBtn, endGameBtn, team1GoalBtn, team2GoalBtn];
+            buttons.forEach(btn => {
+                if (btn.disabled) {
+                    btn.style.opacity = '0.5';
+                    btn.style.cursor = 'not-allowed';
+                } else {
+                    btn.style.opacity = '1';
+                    btn.style.cursor = 'pointer';
+                }
+            });
         }
 
         // Load games
