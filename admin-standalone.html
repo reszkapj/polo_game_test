@@ -117,9 +117,6 @@
             </div>
             
             <h4>Manual Score Adjustment</h4>
-            <div style="margin: 5px 0; font-size: 0.9rem; opacity: 0.7;">
-                Current: <span id="currentScoreDisplay">0 - 0</span>
-            </div>
             <div style="display: grid; grid-template-columns: 1fr 1fr 100px; gap: 10px; margin: 10px 0;">
                 <input type="number" id="team1ScoreInput" placeholder="Team 1 Score" min="0" style="padding: 8px;">
                 <input type="number" id="team2ScoreInput" placeholder="Team 2 Score" min="0" style="padding: 8px;">
@@ -204,6 +201,8 @@
         let currentGame = null;
         let currentGameData = null;
         let createGameFn, addGameEventFn, setChukkaTimerFn, setScoresFn, setCurrentChukkaFn;
+        let adminChukkaTimer = null;
+        let gameListener = null;
 
         // Initialize functions
         createGameFn = functions.httpsCallable('createGame');
@@ -247,36 +246,43 @@
             document.getElementById('currentGameName').textContent = gameName;
             document.getElementById('gameControls').classList.remove('hidden');
             
-            // Load game data and store it
-            const gameDoc = await db.collection('games').doc(gameId).get();
-            const game = gameDoc.data();
-            currentGameData = game;
+            // Stop previous game listener if exists
+            if (gameListener) {
+                gameListener();
+                gameListener = null;
+            }
             
-            document.getElementById('currentGameStatus').textContent = game.status;
-            document.getElementById('currentGameStatus').className = `status ${game.status}`;
-            document.getElementById('currentChukka').textContent = game.currentChukka || 0;
-            
-            // Update team goal buttons with actual team names
-            document.getElementById('team1GoalBtn').textContent = `Goal for ${game.teams.team1.name}`;
-            document.getElementById('team2GoalBtn').textContent = `Goal for ${game.teams.team2.name}`;
-            
-            // Update score input placeholders and values
-            document.getElementById('team1ScoreInput').placeholder = `${game.teams.team1.name} Score`;
-            document.getElementById('team1ScoreInput').value = game.teams.team1.score;
-            document.getElementById('team2ScoreInput').placeholder = `${game.teams.team2.name} Score`;
-            document.getElementById('team2ScoreInput').value = game.teams.team2.score;
-            
-            // Update current score display
-            document.getElementById('currentScoreDisplay').textContent = `${game.teams.team1.score} - ${game.teams.team2.score}`;
-            
-            // Update current chukka input placeholder
-            document.getElementById('chukkaNumberInput').placeholder = `Current: ${game.currentChukka || 0}`;
-            
-            // Update current timer display
-            updateTimerDisplay(game);
-            
-            // Update button states based on game status
-            updateButtonStates(game);
+            // Set up real-time listener for game updates
+            gameListener = db.collection('games').doc(gameId).onSnapshot((doc) => {
+                if (doc.exists) {
+                    const game = doc.data();
+                    currentGameData = game;
+                    
+                    // Update game info display
+                    document.getElementById('currentGameStatus').textContent = game.status;
+                    document.getElementById('currentGameStatus').className = `status ${game.status}`;
+                    document.getElementById('currentChukka').textContent = game.currentChukka || 0;
+                    
+                    // Update team goal buttons with actual team names
+                    document.getElementById('team1GoalBtn').textContent = `Goal for ${game.teams.team1.name}`;
+                    document.getElementById('team2GoalBtn').textContent = `Goal for ${game.teams.team2.name}`;
+                    
+                    // Update score input placeholders and values
+                    document.getElementById('team1ScoreInput').placeholder = `${game.teams.team1.name} Score`;
+                    document.getElementById('team1ScoreInput').value = game.teams.team1.score;
+                    document.getElementById('team2ScoreInput').placeholder = `${game.teams.team2.name} Score`;
+                    document.getElementById('team2ScoreInput').value = game.teams.team2.score;
+                    
+                    // Update current chukka input value
+                    document.getElementById('chukkaNumberInput').value = game.currentChukka || 0;
+                    
+                    // Update timer display and start live timer if needed
+                    updateAdminTimer(game);
+                    
+                    // Update button states based on game status
+                    updateButtonStates(game);
+                }
+            });
         }
 
         // Add game event
@@ -303,19 +309,6 @@
                     type: eventType,
                     chukka: chukka
                 });
-                
-                // Reload game data to update button states
-                const gameDoc = await db.collection('games').doc(currentGame).get();
-                if (gameDoc.exists) {
-                    const game = gameDoc.data();
-                    currentGameData = game;
-                    document.getElementById('currentGameStatus').textContent = game.status;
-                    document.getElementById('currentGameStatus').className = `status ${game.status}`;
-                    document.getElementById('currentChukka').textContent = game.currentChukka || 0;
-                    document.getElementById('currentScoreDisplay').textContent = `${game.teams.team1.score} - ${game.teams.team2.score}`;
-                    updateTimerDisplay(game);
-                    updateButtonStates(game);
-                }
             } catch (error) {
                 alert('Error adding event: ' + error.message);
             }
@@ -337,18 +330,6 @@
                     team: teamName,
                     chukka: parseInt(document.getElementById('currentChukka').textContent) || 1
                 });
-                
-                // Reload game data to update scores and button states
-                const gameDoc = await db.collection('games').doc(currentGame).get();
-                if (gameDoc.exists) {
-                    const game = gameDoc.data();
-                    currentGameData = game;
-                    document.getElementById('team1ScoreInput').value = game.teams.team1.score;
-                    document.getElementById('team2ScoreInput').value = game.teams.team2.score;
-                    document.getElementById('currentScoreDisplay').textContent = `${game.teams.team1.score} - ${game.teams.team2.score}`;
-                    updateTimerDisplay(game);
-                    updateButtonStates(game);
-                }
             } catch (error) {
                 alert('Error adding goal: ' + error.message);
             }
@@ -371,16 +352,6 @@
                     team2Score: team2Score
                 });
                 alert('Scores updated successfully!');
-                
-                // Reload game data to update button states
-                const gameDoc = await db.collection('games').doc(currentGame).get();
-                if (gameDoc.exists) {
-                    const game = gameDoc.data();
-                    currentGameData = game;
-                    document.getElementById('currentScoreDisplay').textContent = `${game.teams.team1.score} - ${game.teams.team2.score}`;
-                    updateTimerDisplay(game);
-                    updateButtonStates(game);
-                }
             } catch (error) {
                 alert('Error setting scores: ' + error.message);
             }
@@ -440,12 +411,41 @@
             }
         }
 
-        // Update timer display
-        function updateTimerDisplay(game) {
-            const elapsed = game.chukkaElapsedSeconds || 0;
-            const minutes = Math.floor(elapsed / 60);
-            const seconds = elapsed % 60;
-            document.getElementById('currentTimerDisplay').textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+        // Update admin timer with live updates
+        function updateAdminTimer(game) {
+            // Stop existing timer
+            if (adminChukkaTimer) {
+                clearInterval(adminChukkaTimer);
+                adminChukkaTimer = null;
+            }
+
+            if (game.status === 'live' && game.chukkaStartTime) {
+                // Start live timer
+                function updateLiveTimer() {
+                    const now = new Date();
+                    const liveElapsed = Math.floor((now - game.chukkaStartTime.toDate()) / 1000);
+                    const totalElapsed = (game.chukkaElapsedSeconds || 0) + liveElapsed;
+                    const minutes = Math.floor(totalElapsed / 60);
+                    const seconds = totalElapsed % 60;
+                    
+                    const timerElement = document.getElementById('currentTimerDisplay');
+                    if (timerElement) {
+                        timerElement.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+                    }
+                }
+                
+                updateLiveTimer();
+                adminChukkaTimer = setInterval(updateLiveTimer, 1000);
+            } else {
+                // Show static time if paused, chukka_ended, or game ended
+                const elapsed = game.chukkaElapsedSeconds || 0;
+                const minutes = Math.floor(elapsed / 60);
+                const seconds = elapsed % 60;
+                const timerElement = document.getElementById('currentTimerDisplay');
+                if (timerElement) {
+                    timerElement.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+                }
+            }
         }
 
         // Update button states based on game status
