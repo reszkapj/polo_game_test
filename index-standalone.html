@@ -257,12 +257,68 @@
                         ${game.teams.team1.name}: ${game.teams.team1.score} - 
                         ${game.teams.team2.name}: ${game.teams.team2.score}
                     </div>
-                    <p>Status: ${game.status}</p>
-                    <p>Chukka: ${game.currentChukka || 0}</p>
+                    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin: 20px 0; text-align: center;">
+                        <div>
+                            <div style="opacity: 0.7;">Status</div>
+                            <div style="font-size: 1.2rem; font-weight: bold;">${game.status}</div>
+                        </div>
+                        <div>
+                            <div style="opacity: 0.7;">Chukka</div>
+                            <div style="font-size: 1.2rem; font-weight: bold;">${game.currentChukka || 0}</div>
+                        </div>
+                        <div>
+                            <div style="opacity: 0.7;">Time</div>
+                            <div id="chukkaTimer" style="font-size: 1.5rem; font-weight: bold; color: #f39c12;">00:00</div>
+                        </div>
+                    </div>
                 `;
+                
+                // Update timer based on game status
+                updateChukkaTimer(game);
             }, (error) => {
                 document.getElementById('gameInfo').innerHTML = '<p>Error loading games: ' + error.message + '</p>';
             });
+        }
+
+        // Timer management
+        let chukkaTimer = null;
+
+        function updateChukkaTimer(game) {
+            if (chukkaTimer) {
+                clearInterval(chukkaTimer);
+                chukkaTimer = null;
+            }
+
+            if (game.status === 'live' && game.chukkaStartTime) {
+                startChukkaTimer(game.chukkaStartTime.toDate(), game.chukkaElapsedSeconds || 0);
+            } else {
+                // Show static time if paused or ended
+                const elapsed = game.chukkaElapsedSeconds || 0;
+                const minutes = Math.floor(elapsed / 60);
+                const seconds = elapsed % 60;
+                const timerElement = document.getElementById('chukkaTimer');
+                if (timerElement) {
+                    timerElement.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+                }
+            }
+        }
+
+        function startChukkaTimer(startTime, elapsedSeconds = 0) {
+            function updateTimer() {
+                const now = new Date();
+                const liveElapsed = Math.floor((now - startTime) / 1000);
+                const totalElapsed = elapsedSeconds + liveElapsed;
+                const minutes = Math.floor(totalElapsed / 60);
+                const seconds = totalElapsed % 60;
+                
+                const timerElement = document.getElementById('chukkaTimer');
+                if (timerElement) {
+                    timerElement.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+                }
+            }
+            
+            updateTimer();
+            chukkaTimer = setInterval(updateTimer, 1000);
         }
     </script>
 </body>

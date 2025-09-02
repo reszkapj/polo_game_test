@@ -120,6 +120,14 @@
                 </select>
                 <button class="btn btn-success" onclick="addGoal()">Goal!</button>
             </div>
+
+            <h4>Chukka Timer Control</h4>
+            <div style="display: grid; grid-template-columns: 1fr 1fr 100px; gap: 10px; margin: 10px 0;">
+                <input type="number" id="timerMinutes" placeholder="Minutes" min="0" max="59" style="padding: 8px;">
+                <input type="number" id="timerSeconds" placeholder="Seconds" min="0" max="59" style="padding: 8px;">
+                <button class="btn" onclick="setChukkaTimer()">Set Timer</button>
+            </div>
+            <p style="font-size: 0.9rem; opacity: 0.7;">Current timer will be updated for all viewers</p>
         </div>
     </div>
 
@@ -180,11 +188,12 @@
 
         // Variables
         let currentGame = null;
-        let createGameFn, addGameEventFn;
+        let createGameFn, addGameEventFn, setChukkaTimerFn;
 
         // Initialize functions
         createGameFn = functions.httpsCallable('createGame');
         addGameEventFn = functions.httpsCallable('addGameEvent');
+        setChukkaTimerFn = functions.httpsCallable('setChukkaTimer');
 
         // Create game
         async function createGame() {
@@ -296,6 +305,31 @@
                 });
             } catch (error) {
                 alert('Error adding goal: ' + error.message);
+            }
+        }
+
+        // Set chukka timer manually
+        async function setChukkaTimer() {
+            if (!currentGame) {
+                alert('Please select a game first');
+                return;
+            }
+
+            const minutes = parseInt(document.getElementById('timerMinutes').value) || 0;
+            const seconds = parseInt(document.getElementById('timerSeconds').value) || 0;
+
+            try {
+                await setChukkaTimerFn({
+                    gameId: currentGame,
+                    minutes: minutes,
+                    seconds: seconds
+                });
+                alert(`Timer set to ${minutes}:${seconds.toString().padStart(2, '0')}`);
+                // Clear inputs
+                document.getElementById('timerMinutes').value = '';
+                document.getElementById('timerSeconds').value = '';
+            } catch (error) {
+                alert('Error setting timer: ' + error.message);
             }
         }
 
