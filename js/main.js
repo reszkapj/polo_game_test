@@ -5,11 +5,13 @@ let chukkaTimer = null;
 
 // Initialize app when Firebase is ready
 function initializeApp() {
-  if (typeof firebase === 'undefined') {
-    setTimeout(initializeApp, 100);
+  if (typeof firebase === 'undefined' || typeof firebase.firestore === 'undefined') {
+    console.log('Waiting for Firebase...');
+    setTimeout(initializeApp, 200);
     return;
   }
   
+  console.log('Firebase ready, initializing app...');
   try {
     loadLiveGame();
     initializeNotifications();

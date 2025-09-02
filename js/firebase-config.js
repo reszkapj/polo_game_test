@@ -9,9 +9,23 @@ const firebaseConfig = {
   measurementId: "G-51QRWRCR4V"
 };
 
-// Initialize Firebase
-const app = firebase.initializeApp(firebaseConfig);
-window.db = firebase.firestore();
-window.auth = firebase.auth();
-window.functions = firebase.functions();
-window.messaging = firebase.messaging();
+// Initialize Firebase when available
+function initFirebase() {
+  if (typeof firebase !== 'undefined') {
+    const app = firebase.initializeApp(firebaseConfig);
+    window.db = firebase.firestore();
+    window.auth = firebase.auth();
+    window.functions = firebase.functions();
+    window.messaging = firebase.messaging();
+    console.log('Firebase initialized');
+  }
+}
+
+// Try to initialize immediately or wait for Firebase to load
+if (typeof firebase !== 'undefined') {
+  initFirebase();
+} else {
+  document.addEventListener('DOMContentLoaded', () => {
+    setTimeout(initFirebase, 100);
+  });
+}
