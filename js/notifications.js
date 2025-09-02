@@ -1,8 +1,5 @@
-import { messaging } from './firebase-config.js';
-import { getToken, onMessage } from 'firebase/messaging';
-
 // Initialize push notifications
-export async function initializeNotifications() {
+async function initializeNotifications() {
   if (!('serviceWorker' in navigator) || !('Notification' in window)) {
     console.log('Push notifications not supported');
     return;
@@ -20,7 +17,7 @@ export async function initializeNotifications() {
     }
 
     // Get FCM token
-    const token = await getToken(messaging, {
+    const token = await firebase.messaging().getToken({
       vapidKey: 'BG8tbedFo8H5yyaNS4TrgCMLbd6ggrdynd5qDItxNxzH69s4CO4IrNNlXI8-xckmN8XvJFm5_uEkfjCOevJ0nVg' // TODO: Replace with your VAPID key
     });
     
@@ -30,7 +27,7 @@ export async function initializeNotifications() {
     }
 
     // Handle foreground messages
-    onMessage(messaging, (payload) => {
+    firebase.messaging().onMessage((payload) => {
       console.log('Foreground message received:', payload);
       
       // Show notification even when page is active

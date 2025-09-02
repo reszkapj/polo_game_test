@@ -1,6 +1,4 @@
-import { db } from './firebase-config.js';
-import { collection, query, where, orderBy, onSnapshot, limit } from 'firebase/firestore';
-import './notifications.js';
+// Use global Firebase objects from firebase-config.js
 
 let currentGameId = null;
 let chukkaTimer = null;
@@ -8,19 +6,17 @@ let chukkaTimer = null;
 // Initialize app
 document.addEventListener('DOMContentLoaded', () => {
   loadLiveGame();
-  requestNotificationPermission();
+  initializeNotifications();
 });
 
 // Load current live game
 function loadLiveGame() {
-  const liveGameQuery = query(
-    collection(db, 'games'),
-    where('status', 'in', ['live', 'paused']),
-    orderBy('startDate', 'desc'),
-    limit(1)
-  );
+  const liveGameQuery = firebase.firestore().collection('games')
+    .where('status', 'in', ['live', 'paused'])
+    .orderBy('startDate', 'desc')
+    .limit(1);
   
-  onSnapshot(liveGameQuery, (snapshot) => {
+  liveGameQuery.onSnapshot((snapshot) => {
     if (snapshot.empty) {
       document.getElementById('noLiveGame').classList.remove('hidden');
       document.getElementById('liveGameCard').classList.add('hidden');
@@ -92,14 +88,12 @@ function updatePlayersList(teamKey, team) {
 
 // Load recent events
 function loadRecentEvents(gameId) {
-  const eventsQuery = query(
-    collection(db, 'events'),
-    where('gameId', '==', gameId),
-    orderBy('timestamp', 'desc'),
-    limit(10)
-  );
+  const eventsQuery = firebase.firestore().collection('events')
+    .where('gameId', '==', gameId)
+    .orderBy('timestamp', 'desc')
+    .limit(10);
   
-  onSnapshot(eventsQuery, (snapshot) => {
+  eventsQuery.onSnapshot((snapshot) => {
     const eventsContainer = document.getElementById('recentEvents');
     eventsContainer.innerHTML = '';
     
@@ -176,13 +170,11 @@ function stopChukkaTimer() {
 
 // Load historical games
 function loadHistoricalGames() {
-  const historicalQuery = query(
-    collection(db, 'games'),
-    where('status', '==', 'finished'),
-    orderBy('startDate', 'desc')
-  );
+  const historicalQuery = firebase.firestore().collection('games')
+    .where('status', '==', 'finished')
+    .orderBy('startDate', 'desc');
   
-  onSnapshot(historicalQuery, (snapshot) => {
+  historicalQuery.onSnapshot((snapshot) => {
     const historicalContainer = document.getElementById('historicalGames');
     historicalContainer.innerHTML = '';
     
@@ -229,13 +221,42 @@ window.showHistoricalGames = () => {
   loadHistoricalGames();
 };
 
-// Request notification permission
-function requestNotificationPermission() {
-  if ('Notification' in window && 'serviceWorker' in navigator) {
-    Notification.requestPermission().then(permission => {
-      if (permission === 'granted') {
-        console.log('Notification permission granted');
+// Initialize push notifications
+async function initializeNotifications() {
+  if (!('serviceWorker' in navigator) || !('Notification' in window)) {
+    console.log('Push notifications not supported');
+    return;
+  }
+
+  try {
+    await navigator.serviceWorker.register('/firebase-messaging-sw.js');
+    
+    const permission = await Notification.requestPermission();
+    if (permission !== 'granted') {
+      console.log('Notification permission denied');
+      return;
+    }
+
+    const token = await firebase.messaging().getToken({
+      vapidKey: 'BG8tbedFo8H5yyaNS4TrgCMLbd6ggrdynd5qDItxNxzH69s4CO4IrNNlXI8-xckmN8XvJFm5_uEkfjCOevJ0nVg'
+    });
+    
+    if (token) {
+      console.log('FCM Token:', token);
+    }
+
+    firebase.messaging().onMessage((payload) => {
+      console.log('Foreground message received:', payload);
+      
+      if (Notification.permission === 'granted') {
+        new Notification(payload.notification.title, {
+          body: payload.notification.body,
+          icon: payload.notification.icon || '/icon-192.png'
+        });
       }
     });
+    
+  } catch (error) {
+    console.error('Error initializing notifications:', error);
   }
 }

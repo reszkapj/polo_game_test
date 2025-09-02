@@ -1,14 +1,16 @@
-import { auth, db, functions } from './firebase-config.js';
-import { signInWithEmailAndPassword, signOut, onAuthStateChanged } from 'firebase/auth';
-import { collection, onSnapshot, query, orderBy } from 'firebase/firestore';
-import { httpsCallable } from 'firebase/functions';
+// Use global Firebase objects from firebase-config.js
 
 let currentGame = null;
-const createGameFn = httpsCallable(functions, 'createGame');
-const addGameEventFn = httpsCallable(functions, 'addGameEvent');
+let createGameFn, addGameEventFn;
+
+// Initialize when Firebase is loaded
+document.addEventListener('DOMContentLoaded', () => {
+  createGameFn = firebase.functions().httpsCallable('createGame');
+  addGameEventFn = firebase.functions().httpsCallable('addGameEvent');
+});
 
 // Auth state management
-onAuthStateChanged(auth, (user) => {
+firebase.auth().onAuthStateChanged((user) => {
   if (user) {
     document.getElementById('loginSection').classList.add('hidden');
     document.getElementById('adminSection').classList.remove('hidden');
@@ -26,7 +28,7 @@ window.login = async () => {
   const errorDiv = document.getElementById('loginError');
   
   try {
-    await signInWithEmailAndPassword(auth, email, password);
+    await firebase.auth().signInWithEmailAndPassword(email, password);
     errorDiv.textContent = '';
   } catch (error) {
     errorDiv.textContent = 'Login failed: ' + error.message;
@@ -35,14 +37,14 @@ window.login = async () => {
 
 // Logout function
 window.logout = async () => {
-  await signOut(auth);
+  await firebase.auth().signOut();
 };
 
 // Load games list
 function loadGames() {
-  const gamesQuery = query(collection(db, 'games'), orderBy('startDate', 'desc'));
+  const gamesQuery = firebase.firestore().collection('games').orderBy('startDate', 'desc');
   
-  onSnapshot(gamesQuery, (snapshot) => {
+  gamesQuery.onSnapshot((snapshot) => {
     const gamesList = document.getElementById('gamesList');
     gamesList.innerHTML = '';
     
@@ -70,7 +72,7 @@ window.selectGame = async (gameId, gameName) => {
   document.getElementById('gameControls').classList.remove('hidden');
   
   // Load game data and populate team/player dropdowns
-  const gameDoc = await db.collection('games').doc(gameId).get();
+  const gameDoc = await firebase.firestore().collection('games').doc(gameId).get();
   const game = gameDoc.data();
   
   document.getElementById('currentGameStatus').textContent = game.status;
