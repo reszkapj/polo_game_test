@@ -76,43 +76,76 @@
                     return;
                 }
 
+                // Check current permission status
+                if (Notification.permission === 'default') {
+                    document.getElementById('enableNotifications').style.display = 'inline-block';
+                    return;
+                }
+
+                if (Notification.permission === 'denied') {
+                    console.log('Notifications are blocked');
+                    return;
+                }
+
+                // If already granted, proceed with setup
+                await setupNotifications();
+                
+            } catch (error) {
+                console.error('Error checking notification support:', error);
+            }
+        }
+
+        // Request notification permission manually
+        async function requestNotifications() {
+            try {
+                const permission = await Notification.requestPermission();
+                
+                if (permission === 'granted') {
+                    document.getElementById('enableNotifications').style.display = 'none';
+                    await setupNotifications();
+                } else {
+                    alert('Notification permission denied. You can enable it later in browser settings.');
+                }
+            } catch (error) {
+                console.error('Error requesting notifications:', error);
+            }
+        }
+
+        // Setup notifications after permission granted
+        async function setupNotifications() {
+            try {
                 // Register service worker - use relative path for GitHub Pages
                 const registration = await navigator.serviceWorker.register('./firebase-messaging-sw.js');
                 console.log('Service Worker registered:', registration);
 
-                // Request permission
-                const permission = await Notification.requestPermission();
-                if (permission === 'granted') {
-                    console.log('Notification permission granted');
-                    
-                    // Get FCM token
-                    const token = await messaging.getToken({
-                        vapidKey: 'BG8tbedFo8H5yyaNS4TrgCMLbd6ggrdynd5qDItxNxzH69s4CO4IrNNlXI8-xckmN8XvJFm5_uEkfjCOevJ0nVg',
-                        serviceWorkerRegistration: registration
-                    });
-                    
-                    if (token) {
-                        console.log('FCM Token:', token);
-                        // Subscribe to topic for game updates
-                        subscribeToTopic(token);
-                    }
-
-                    // Handle foreground messages
-                    messaging.onMessage((payload) => {
-                        console.log('Message received:', payload);
-                        // Show notification even when app is in foreground
-                        const notificationTitle = payload.notification.title;
-                        const notificationOptions = {
-                            body: payload.notification.body,
-                            icon: '/icon-192.png'
-                        };
-                        new Notification(notificationTitle, notificationOptions);
-                    });
-                } else {
-                    console.log('Notification permission denied');
+                // Get FCM token
+                const token = await messaging.getToken({
+                    vapidKey: 'BG8tbedFo8H5yyaNS4TrgCMLbd6ggrdynd5qDItxNxzH69s4CO4IrNNlXI8-xckmN8XvJFm5_uEkfjCOevJ0nVg',
+                    serviceWorkerRegistration: registration
+                });
+                
+                if (token) {
+                    console.log('FCM Token:', token);
+                    // Subscribe to topic for game updates
+                    subscribeToTopic(token);
                 }
+
+                // Handle foreground messages
+                messaging.onMessage((payload) => {
+                    console.log('Message received:', payload);
+                    // Show notification even when app is in foreground
+                    const notificationTitle = payload.notification.title;
+                    const notificationOptions = {
+                        body: payload.notification.body,
+                        icon: './icon-192.png'
+                    };
+                    new Notification(notificationTitle, notificationOptions);
+                });
+                
+                console.log('Push notifications initialized successfully');
+                
             } catch (error) {
-                console.error('Error initializing notifications:', error);
+                console.error('Error setting up notifications:', error);
             }
         }
 
