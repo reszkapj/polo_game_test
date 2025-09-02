@@ -376,11 +376,6 @@
                     gameId: currentGame,
                     chukkaNumber: chukkaNumber
                 });
-                alert(`Current chukka set to ${chukkaNumber}`);
-                
-                // Update display
-                document.getElementById('currentChukka').textContent = chukkaNumber;
-                document.getElementById('chukkaNumberInput').value = '';
             } catch (error) {
                 alert('Error setting current chukka: ' + error.message);
             }
