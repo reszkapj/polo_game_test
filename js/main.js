@@ -10,8 +10,12 @@ function initializeApp() {
     return;
   }
   
-  loadLiveGame();
-  initializeNotifications();
+  try {
+    loadLiveGame();
+    initializeNotifications();
+  } catch (error) {
+    console.error('Initialization error:', error);
+  }
 }
 
 document.addEventListener('DOMContentLoaded', initializeApp);
