@@ -35,6 +35,7 @@
     <!-- Firebase CDN with explicit versioning -->
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-functions-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-messaging-compat.js"></script>
 
     <script>
@@ -50,11 +51,12 @@
         };
 
         // Initialize Firebase
-        let db, messaging;
+        let db, messaging, functions;
         try {
             firebase.initializeApp(firebaseConfig);
             db = firebase.firestore();
             messaging = firebase.messaging();
+            functions = firebase.functions();
             document.getElementById('loading').textContent = 'Firebase loaded! Connecting to database...';
             loadGames();
             initializeNotifications();
@@ -152,11 +154,22 @@
         // Subscribe to topic
         async function subscribeToTopic(token) {
             try {
-                const subscribeFunction = firebase.functions().httpsCallable('subscribeToTopic');
+                const subscribeFunction = functions.httpsCallable('subscribeToTopic');
                 const result = await subscribeFunction({ token });
                 console.log('Subscribed to notifications:', result.data.message);
+                
+                // Test notification immediately
+                new Notification('Polo Game Tracker', {
+                    body: 'Push notifications are now enabled! You\'ll receive updates when games start, goals are scored, and more.',
+                    icon: './icon-192.png'
+                });
             } catch (error) {
                 console.error('Error subscribing to topic:', error);
+                // Show a test notification anyway
+                new Notification('Polo Game Tracker', {
+                    body: 'Notifications enabled! (Note: subscription to server topic failed - you may not receive all updates)',
+                    icon: './icon-192.png'
+                });
             }
         }
 
