@@ -22,6 +22,7 @@
             <h1>Polo Game Tracker</h1>
             <div>
                 <button id="enableNotifications" class="btn" onclick="requestNotifications()" style="display: none;">Enable Notifications</button>
+                <button class="btn" onclick="testNotification()">Test Notification</button>
                 <a href="admin-standalone.html" class="btn" style="text-decoration: none; display: inline-block;">Admin Panel</a>
             </div>
         </div>
@@ -135,13 +136,33 @@
                 // Handle foreground messages
                 messaging.onMessage((payload) => {
                     console.log('Message received:', payload);
+                    
                     // Show notification even when app is in foreground
-                    const notificationTitle = payload.notification.title;
-                    const notificationOptions = {
-                        body: payload.notification.body,
-                        icon: './icon-192.png'
-                    };
-                    new Notification(notificationTitle, notificationOptions);
+                    if (payload.notification) {
+                        const notificationTitle = payload.notification.title || 'Polo Game Update';
+                        const notificationOptions = {
+                            body: payload.notification.body || 'Game event occurred',
+                            icon: './icon-192.png',
+                            badge: './icon-192.png',
+                            requireInteraction: true,
+                            tag: 'polo-game-update'
+                        };
+                        
+                        console.log('Showing notification:', notificationTitle, notificationOptions);
+                        
+                        // Try both methods to ensure notification shows
+                        try {
+                            const notification = new Notification(notificationTitle, notificationOptions);
+                            console.log('Notification created:', notification);
+                            
+                            // Auto-close after 5 seconds
+                            setTimeout(() => {
+                                notification.close();
+                            }, 5000);
+                        } catch (error) {
+                            console.error('Error creating notification:', error);
+                        }
+                    }
                 });
                 
                 console.log('Push notifications initialized successfully');
@@ -170,6 +191,21 @@
                     body: 'Notifications enabled! (Note: subscription to server topic failed - you may not receive all updates)',
                     icon: './icon-192.png'
                 });
+            }
+        }
+
+        // Test notification manually
+        function testNotification() {
+            if (Notification.permission === 'granted') {
+                console.log('Creating test notification...');
+                const notification = new Notification('Test Notification', {
+                    body: 'This is a test notification to verify they are working!',
+                    icon: './icon-192.png',
+                    tag: 'test'
+                });
+                console.log('Test notification created:', notification);
+            } else {
+                alert('Notifications not enabled. Click "Enable Notifications" first.');
             }
         }
 
