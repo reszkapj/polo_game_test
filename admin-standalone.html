@@ -81,12 +81,18 @@
                     <input type="text" id="team1Players" placeholder="Player 1, Player 2, Player 3, Player 4">
                 </div>
                 <div class="form-group">
+                    <label><input type="checkbox" id="team1HalfPoint"> Team 1 has half point handicap</label>
+                </div>
+                <div class="form-group">
                     <label>Team 2 Name:</label>
                     <input type="text" id="team2Name" placeholder="Team B">
                 </div>
                 <div class="form-group">
                     <label>Team 2 Players (comma separated):</label>
                     <input type="text" id="team2Players" placeholder="Player 1, Player 2, Player 3, Player 4">
+                </div>
+                <div class="form-group">
+                    <label><input type="checkbox" id="team2HalfPoint"> Team 2 has half point handicap</label>
                 </div>
                 <button class="btn btn-success" onclick="createGame()">Create Game</button>
             </div>
@@ -133,6 +139,10 @@
             <h4>Chukker Timer Control</h4>
             <div style="margin: 5px 0; font-size: 0.9rem; opacity: 0.7;">
                 Current: <span id="currentTimerDisplay">00:00</span>
+                <div style="display: flex; gap: 5px; margin-top: 5px; justify-content: center;">
+                    <button class="btn btn-sm" onclick="adjustTimer(-1)" style="padding: 4px 8px; font-size: 0.8rem;">-1s</button>
+                    <button class="btn btn-sm" onclick="adjustTimer(1)" style="padding: 4px 8px; font-size: 0.8rem;">+1s</button>
+                </div>
             </div>
             <div style="display: grid; grid-template-columns: 1fr 1fr 100px; gap: 10px; margin: 10px 0;">
                 <input type="number" id="timerMinutes" placeholder="Minutes" min="0" max="59" style="padding: 8px;">
@@ -228,7 +238,9 @@
                     .filter(p => p.name),
                 venue: document.getElementById('venue').value || '',
                 startDate: document.getElementById('startDate').value || '',
-                startTime: document.getElementById('startTime').value || ''
+                startTime: document.getElementById('startTime').value || '',
+                team1HalfPoint: document.getElementById('team1HalfPoint').checked,
+                team2HalfPoint: document.getElementById('team2HalfPoint').checked
             };
             
             try {
@@ -397,12 +409,43 @@
                     minutes: minutes,
                     seconds: seconds
                 });
-               // alert(`Timer set to ${minutes}:${seconds.toString().padStart(2, '0')}`);
                 // Clear inputs
                 document.getElementById('timerMinutes').value = '';
                 document.getElementById('timerSeconds').value = '';
             } catch (error) {
                 alert('Error setting timer: ' + error.message);
+            }
+        }
+
+        // Adjust timer by seconds (+1 or -1)
+        async function adjustTimer(adjustment) {
+            if (!currentGame) {
+                alert('Please select a game first');
+                return;
+            }
+
+            // Get current timer value from display
+            const currentDisplay = document.getElementById('currentTimerDisplay').textContent;
+            const [displayMinutes, displaySeconds] = currentDisplay.split(':').map(s => parseInt(s) || 0);
+            let totalSeconds = displayMinutes * 60 + displaySeconds;
+
+            // Adjust by the specified amount
+            totalSeconds += adjustment;
+            
+            // Prevent negative times
+            if (totalSeconds < 0) totalSeconds = 0;
+
+            const newMinutes = Math.floor(totalSeconds / 60);
+            const newSeconds = totalSeconds % 60;
+
+            try {
+                await setChukkaTimerFn({
+                    gameId: currentGame,
+                    minutes: newMinutes,
+                    seconds: newSeconds
+                });
+            } catch (error) {
+                console.error('Error adjusting timer:', error);
             }
         }
 
