@@ -130,18 +130,12 @@
                 <button class="btn" onclick="setScores()">Set Scores</button>
             </div>
 
-            <h4>Current Chukker Control</h4>
-            <div style="display: grid; grid-template-columns: 1fr 100px; gap: 10px; margin: 10px 0;">
-                <input type="number" id="chukkaNumberInput" placeholder="Chukker Number" min="0" max="6" style="padding: 8px;">
-                <button class="btn" onclick="setCurrentChukka()">Set Chukker</button>
-            </div>
-
             <h4>Chukker Timer Control</h4>
             <div style="margin: 5px 0; font-size: 0.9rem; opacity: 0.7;">
                 Current: <span id="currentTimerDisplay">00:00</span>
-                <div style="display: flex; gap: 5px; margin-top: 5px; justify-content: center;">
-                    <button class="btn btn-sm" onclick="adjustTimer(-1)" style="padding: 4px 8px; font-size: 0.8rem;">-1s</button>
-                    <button class="btn btn-sm" onclick="adjustTimer(1)" style="padding: 4px 8px; font-size: 0.8rem;">+1s</button>
+                <div style="display: flex; gap: 10px; margin-top: 8px; justify-content: center;">
+                    <button class="btn" onclick="adjustTimer(-1)" style="padding: 10px 16px; font-size: 1rem;">-1s</button>
+                    <button class="btn" onclick="adjustTimer(1)" style="padding: 10px 16px; font-size: 1rem;">+1s</button>
                 </div>
             </div>
             <div style="display: grid; grid-template-columns: 1fr 1fr 100px; gap: 10px; margin: 10px 0;">
@@ -150,6 +144,12 @@
                 <button class="btn" onclick="setChukkaTimer()">Set Timer</button>
             </div>
             <p style="font-size: 0.9rem; opacity: 0.7;">Current timer will be updated for all viewers</p>
+
+            <h4>Current Chukker Control</h4>
+            <div style="display: grid; grid-template-columns: 1fr 100px; gap: 10px; margin: 10px 0;">
+                <input type="number" id="chukkaNumberInput" placeholder="Chukker Number" min="0" max="6" style="padding: 8px;">
+                <button class="btn" onclick="setCurrentChukka()">Set Chukker</button>
+            </div>
         </div>
     </div>
 
